@@ -1,5 +1,5 @@
 from opengsq.protocol_base import ProtocolBase
-from opengsq.protocol_socket import UdpClient
+from opengsq.protocol_socket import UdpBroadcastClient
 from opengsq.responses.udk.status import Status, PlatformType
 from opengsq.binary_reader import BinaryReader
 import struct
@@ -20,7 +20,7 @@ class UDK(ProtocolBase):
 
     async def get_status(self) -> Status:
         packet = self._build_query_packet()
-        data = await UdpClient.communicate(self, packet)
+        data = await UdpBroadcastClient.communicate(self, packet)
         parsed_data = self._parse_response(data)
         
         return Status(

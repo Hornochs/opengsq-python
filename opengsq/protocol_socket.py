@@ -125,6 +125,19 @@ class UdpClient(Socket):
     def __init__(self):
         super().__init__(SocketKind.SOCK_DGRAM)
 
+class UdpBroadcastClient(Socket):
+    @staticmethod
+    async def communicate(protocol: ProtocolBase, data: bytes):
+        with UdpBroadcastClient() as udpClient:
+            udpClient.settimeout(protocol._timeout)
+            # Enable broadcasting
+            udpClient._transport._sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            await udpClient.connect((protocol._host, protocol._port))
+            udpClient.send(data)
+            return await udpClient.recv()
+
+    def __init__(self):
+        super().__init__(SocketKind.SOCK_DGRAM)
 
 class TcpClient(Socket):
     @staticmethod
