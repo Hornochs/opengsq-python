@@ -130,7 +130,8 @@ class UdpBroadcastClient(Socket):
     async def communicate(protocol: ProtocolBase, data: bytes):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(('', 14001))  # Bind to source port 14011
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(('0.0.0.0', 14001))
         
         with UdpBroadcastClient() as udpClient:
             udpClient._sock = sock
