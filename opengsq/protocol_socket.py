@@ -128,10 +128,12 @@ class UdpClient(Socket):
 class UdpBroadcastClient(Socket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        
         with UdpBroadcastClient() as udpClient:
+            udpClient._sock = sock  # Store the socket
             udpClient.settimeout(protocol._timeout)
-            # Enable broadcasting
-            udpClient._transport._sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
             return await udpClient.recv()
