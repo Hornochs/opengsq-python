@@ -130,9 +130,10 @@ class UdpBroadcastClient(Socket):
     async def communicate(protocol: ProtocolBase, data: bytes):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.bind(('', 14001))  # Bind to source port 14011
         
         with UdpBroadcastClient() as udpClient:
-            udpClient._sock = sock  # Store the socket
+            udpClient._sock = sock
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
