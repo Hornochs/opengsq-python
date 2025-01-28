@@ -134,13 +134,17 @@ class BroadcastSocket(Socket):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
         
-        # Create socket manually to ensure source port
+        # Create socket manually with fixed source port
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(('0.0.0.0', self.source_port))
         
-        await loop.create_connection(lambda: self.__protocol, sock=sock)
+        # Use create_datagram_endpoint with existing socket
+        self.__transport, _ = await loop.create_datagram_endpoint(
+            lambda: self.__protocol,
+            sock=sock
+        )
 
 class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
