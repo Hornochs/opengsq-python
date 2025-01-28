@@ -125,16 +125,22 @@ class UdpClient(Socket):
     def __init__(self):
         super().__init__(SocketKind.SOCK_DGRAM)
 
-class UdpBroadcastClient(Socket):
+class BroadcastSocket(Socket):
+    async def __connect(self, remote_addr):
+        loop = asyncio.get_running_loop()
+        self.__protocol = self.__Protocol(self.__timeout)
+        self.__transport, _ = await loop.create_datagram_endpoint(
+            lambda: self.__protocol,
+            local_addr=('0.0.0.0', 14001),
+            remote_addr=remote_addr,
+            reuse_port=True,
+            allow_broadcast=True
+        )
+
+class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('0.0.0.0', 14001))
-        
         with UdpBroadcastClient() as udpClient:
-            udpClient._sock = sock
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
