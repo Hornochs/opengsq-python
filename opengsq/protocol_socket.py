@@ -150,6 +150,7 @@ class BroadcastSocket(Socket):
 class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes, source_port: int = None):
+        print(f"DEBUG - protocol name passed to broadcast client: {protocol.__class__.__name__}")
         with UdpBroadcastClient(source_port=source_port, protocol_name=protocol.__class__.__name__) as udpClient:
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
