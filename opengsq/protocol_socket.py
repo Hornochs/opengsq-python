@@ -122,43 +122,53 @@ class UdpClient(Socket):
         super().__init__(SocketKind.SOCK_DGRAM)
 
 class BroadcastSocket(Socket):
-    def __init__(self, source_port: int = None, protocol_name: str = None):
+    def __init__(self, protocol: ProtocolBase):
         super().__init__(SocketKind.SOCK_DGRAM)
-        self.source_port = source_port
-        self.protocol_name = protocol_name
+        self.protocol = protocol
+        self.__timeout = None
+        self.__transport = None
+        self.__protocol = None
 
-    async def _connect(self, remote_addr):  # Changed from __connect
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    async def _connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         
-        # Always bind to UDK_PORT (14001) for UDK and derived classes
-        if issubclass(type(self.protocol), UDK):
-            bind_port = 14001
+        if isinstance(self.protocol, UDK):
+            sock.bind(('0.0.0.0', 14001))
         else:
-            bind_port = self.source_port if self.source_port is not None else 0
-            
-        sock.bind(('0.0.0.0', bind_port))
+            sock.bind(('0.0.0.0', 0))
         
-        self._transport, _ = await loop.create_datagram_endpoint(
+        self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
             sock=sock
         )
 
 class UdpBroadcastClient(BroadcastSocket):
-    @staticmethod
-    async def communicate(protocol: ProtocolBase, data: bytes, source_port: int = None):
-        print(f"DEBUG - protocol name passed to broadcast client: {protocol.__class__.__name__}")
-        with UdpBroadcastClient(source_port=source_port, protocol_name=protocol.__class__.__name__) as udpClient:
-            udpClient.settimeout(protocol._timeout)
-            await udpClient.connect((protocol._host, protocol._port))
-            udpClient.send(data)
-            return await udpClient.recv()
+   @staticmethod
+   async def communicate(protocol: ProtocolBase, data: bytes):
+       with UdpBroadcastClient(protocol) as udpClient:
+           udpClient.settimeout(protocol._timeout)
+           await udpClient.connect((protocol._host, protocol._port))
+           udpClient.send(data)
+           return await udpClient.recv()
 
-    def __init__(self, source_port: int = None, protocol_name: str = None):
-        super().__init__(source_port, protocol_name)
+   def __init__(self, protocol: ProtocolBase):
+       super().__init__(protocol)
 
 class TcpClient(Socket):
     @staticmethod
