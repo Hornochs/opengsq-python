@@ -37,19 +37,6 @@ class Socket():
         print(f"DEBUG Socket - connect() called")
         await asyncio.wait_for(self.__connect(remote_addr), timeout=self.__timeout)
 
-    async def _connect(self, remote_addr):
-        print(f"DEBUG 4 - Before socket bind - Using port: {self.bind_port}")
-        print(f"DEBUG Socket - Using port: {self.source_port}")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(('0.0.0.0', self.source_port if self.source_port else 0))
-        print(f"DEBUG 5 - After socket bind - Actual port: {sock.getsockname()[1]}")
-        self.__transport, _ = await loop.create_datagram_endpoint(
-            lambda: self.__protocol,
-            sock=sock
-        )
-
     async def __connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
@@ -65,6 +52,21 @@ class Socket():
                 lambda: self.__protocol,
                 remote_addr=remote_addr,
             )
+
+    async def create_broadcast_connection(self, remote_addr):
+        await asyncio.wait_for(self.setup_broadcast_socket(remote_addr), timeout=self.__timeout)
+
+    async def setup_broadcast_socket(self, remote_addr):
+        loop = asyncio.get_running_loop()
+        self.__protocol = self.__Protocol(self.__timeout)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.bind(('0.0.0.0', 14001))  # UDK always uses 14001
+        self.__transport, _ = await loop.create_datagram_endpoint(
+            lambda: self.__protocol,
+            sock=sock
+        )
 
     def close(self):
         if self.__transport:
@@ -142,17 +144,14 @@ class BroadcastSocket(Socket):
         self.source_port = source_port
         print(f"DEBUG 3.5 - self.source_port: {self.source_port}")
 
-class UdpBroadcastClient(BroadcastSocket):
+class UdpBroadcastClient(Socket):
     @staticmethod
-    async def communicate(protocol: ProtocolBase, data: bytes):
-        source_port = 14001 if protocol.__class__.__name__ in ['UDK', 'UT3'] else None
-        print(f"DEBUG 2 - communicate() - Port before client creation: {source_port}")
-        print(f"DEBUG Client - Setting port: {source_port}")
-        with UdpBroadcastClient(source_port=source_port) as udpClient:
-            udpClient.settimeout(protocol._timeout)
-            await udpClient.connect((protocol._host, protocol._port))
-            udpClient.send(data)
-            return await udpClient.recv()
+    async def communicate(protocol: UDK, data: bytes):
+        with UdpBroadcastClient() as client:
+            client.settimeout(protocol._timeout)
+            await client.create_broadcast_connection((protocol._host, protocol._port))
+            client.send(data)
+            return await client.recv()
 
     def __init__(self, source_port: int = None):
         super().__init__(source_port)
