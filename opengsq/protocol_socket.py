@@ -130,7 +130,7 @@ class BroadcastSocket(Socket):
         super().__init__(SocketKind.SOCK_DGRAM)
         self.source_port = source_port
 
-    async def __connect(self, remote_addr):
+    async def _connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
         
