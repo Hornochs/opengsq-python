@@ -133,15 +133,17 @@ class BroadcastSocket(Socket):
         self.source_port = source_port
 
     async def __connect(self, remote_addr):
-        logger.debug(f"BroadcastSocket binding to source port: {self.source_port}")
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(('0.0.0.0', self.source_port))
-        logger.debug(f"Socket bound successfully")
-        # Use create_datagram_endpoint with existing socket
+        
+        # Add debug line to check actual bound port
+        bound_port = sock.getsockname()[1]
+        print(f"Socket bound to port: {bound_port}")  # Will show in pytest with -s flag
+        
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
             sock=sock
