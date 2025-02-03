@@ -112,29 +112,14 @@ class Socket():
 class UdpClient(Socket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes):
-        source_port = 14001 if protocol.__class__.__name__ == 'UDK' else None
-        with UdpClient(source_port=source_port) as udpClient:
+        with UdpClient() as udpClient:
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
             return await udpClient.recv()
 
-    def __init__(self, source_port: int = None):
+    def __init__(self):
         super().__init__(SocketKind.SOCK_DGRAM)
-        self.source_port = source_port
-
-    async def __connect(self, remote_addr):
-        loop = asyncio.get_running_loop()
-        self.__protocol = self.__Protocol(self.__timeout)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        
-        if self.source_port:
-            sock.bind(('0.0.0.0', self.source_port))
-            
-        self.__transport, _ = await loop.create_datagram_endpoint(
-            lambda: self.__protocol,
-            sock=sock
-        )
 
 class BroadcastSocket(Socket):
     def __init__(self, source_port: int = None, protocol_name: str = None):
