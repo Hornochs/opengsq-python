@@ -2,6 +2,7 @@ import asyncio
 import socket
 from enum import Enum, auto
 from opengsq.protocol_base import ProtocolBase
+from opengsq.protocols.udk import UDK
 
 class SocketKind(Enum):
     SOCK_STREAM = auto()
@@ -150,6 +151,7 @@ class BroadcastSocket(Socket):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         print(f"DEBUG Socket - Binding to port: {14001 if isinstance(self.protocol, UDK) else 0}")
+        print(f"DEBUG Socket - Protocol instance check: {isinstance(self.protocol, UDK)}")
         if isinstance(self.protocol, UDK):
             sock.bind(('0.0.0.0', 14001))
         else:
