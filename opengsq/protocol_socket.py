@@ -142,6 +142,8 @@ class BroadcastSocket(Socket):
         self.close()
 
     async def _connect(self, remote_addr):
+        print(f"DEBUG Socket - Protocol: {self.protocol.__class__.__name__}")
+        print(f"DEBUG Socket - Binding to port: {14001 if isinstance(self.protocol, UDK) else 0}")
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -162,6 +164,7 @@ class UdpBroadcastClient(BroadcastSocket):
    @staticmethod
    async def communicate(protocol: ProtocolBase, data: bytes):
        with UdpBroadcastClient(protocol) as udpClient:
+           print(f"DEBUG Broadcast - Protocol: {protocol.__class__.__name__}")
            udpClient.settimeout(protocol._timeout)
            await udpClient.connect((protocol._host, protocol._port))
            udpClient.send(data)
