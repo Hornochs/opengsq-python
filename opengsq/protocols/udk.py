@@ -28,3 +28,33 @@ class UDK(ProtocolBase):
             raise Exception("Invalid response")
         parsed_data = self._parse_response(data)
         return Status(**parsed_data)
+    
+    def _build_query_packet(self) -> bytes:
+        packet = bytearray(self.LAN_BEACON_PACKET_HEADER_SIZE)
+        struct.pack_into("!BB", packet, 0, self.packet_version, self.platform)
+        struct.pack_into("!I", packet, 2, self.game_id)
+        packet[6:7] = self.packet_types_query[0]
+        packet[7:8] = self.packet_types_query[1]
+        packet[8:16] = self.client_nonce
+        return bytes(packet)
+
+    def _is_valid_response(self, buffer: bytes) -> bool:
+        if len(buffer) <= self.LAN_BEACON_PACKET_HEADER_SIZE:
+            return False
+            
+        version = buffer[0]
+        platform = buffer[1]
+        game_id = struct.unpack("!I", buffer[2:6])[0]
+        response_type = (buffer[6:7], buffer[7:8])
+        response_nonce = buffer[8:16]
+        
+        return (version == self.packet_version and
+                platform == self.platform and
+                game_id == self.game_id and
+                response_type == self.packet_types_response and
+                response_nonce == self.client_nonce)
+
+    def _parse_response(self, buffer: bytes) -> dict:
+        br = BinaryReader(buffer[self.LAN_BEACON_PACKET_HEADER_SIZE:])
+        # Implement parsing logic here
+        pass
