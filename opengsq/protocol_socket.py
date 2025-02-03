@@ -2,7 +2,6 @@ import asyncio
 import socket
 from enum import Enum, auto
 from opengsq.protocol_base import ProtocolBase
-from opengsq.protocols.udk import UDK
 
 class SocketKind(Enum):
     SOCK_STREAM = auto()
@@ -127,25 +126,12 @@ class BroadcastSocket(Socket):
         super().__init__(SocketKind.SOCK_DGRAM)
         self.source_port = source_port
 
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        self.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.close()
-
     async def _connect(self, remote_addr):
         print(f"DEBUG Socket - Using port: {self.source_port}")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(('0.0.0.0', self.source_port if self.source_port else 0))
-        
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
             sock=sock
@@ -157,15 +143,13 @@ class UdpBroadcastClient(BroadcastSocket):
         source_port = 14001 if protocol.__class__.__name__ in ['UDK', 'UT3'] else None
         print(f"DEBUG Client - Setting port: {source_port}")
         with UdpBroadcastClient(source_port=source_port) as udpClient:
-           print(f"DEBUG Broadcast - Protocol type: {type(protocol)}")
-           print(f"DEBUG Broadcast - Protocol: {protocol.__class__.__name__}")
-           udpClient.settimeout(protocol._timeout)
-           await udpClient.connect((protocol._host, protocol._port))
-           udpClient.send(data)
-           return await udpClient.recv()
+            udpClient.settimeout(protocol._timeout)
+            await udpClient.connect((protocol._host, protocol._port))
+            udpClient.send(data)
+            return await udpClient.recv()
 
-   def __init__(self, protocol: ProtocolBase):
-       super().__init__(protocol)
+    def __init__(self, source_port: int = None):
+        super().__init__(source_port)
 
 class TcpClient(Socket):
     @staticmethod
