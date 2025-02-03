@@ -20,6 +20,10 @@ class Socket():
         self.__transport = None
         self.__protocol = None
         self.__kind = kind
+        self.__local_port = None
+
+    def bind_port(self, port: int):
+        self.__local_port = port
 
     async def __aenter__(self):
         return self
@@ -48,11 +52,13 @@ class Socket():
                 lambda: self.__protocol,
                 host=remote_addr[0],
                 port=remote_addr[1],
+                local_addr=('0.0.0.0', self.__local_port) if self.__local_port else None
             )
         else:
             self.__transport, _ = await loop.create_datagram_endpoint(
                 lambda: self.__protocol,
                 remote_addr=remote_addr,
+                local_addr=('0.0.0.0', self.__local_port) if self.__local_port else None
             )
 
     def close(self):
@@ -115,8 +121,10 @@ class Socket():
 
 class UdpClient(Socket):
     @staticmethod
-    async def communicate(protocol: ProtocolBase, data: bytes):
+    async def communicate(protocol: ProtocolBase, data: bytes, source_port: int = None):
         with UdpClient() as udpClient:
+            if source_port:
+                udpClient.bind_port(source_port)
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
