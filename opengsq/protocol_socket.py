@@ -1,9 +1,11 @@
 import asyncio
 import socket
+import logging
 from enum import Enum, auto
 
 from opengsq.protocol_base import ProtocolBase
-
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class SocketKind(Enum):
     SOCK_STREAM = auto()
@@ -130,16 +132,15 @@ class BroadcastSocket(Socket):
         super().__init__(SocketKind.SOCK_DGRAM)
         self.source_port = source_port
 
-    async def _connect(self, remote_addr):
+    async def __connect(self, remote_addr):
+        logger.debug(f"BroadcastSocket binding to source port: {self.source_port}")
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
-        
-        # Create socket manually with fixed source port
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(('0.0.0.0', self.source_port))
-        print(f"Binding to source port: {self.source_port}")
+        logger.debug(f"Socket bound successfully")
         # Use create_datagram_endpoint with existing socket
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
