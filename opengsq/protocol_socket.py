@@ -2,7 +2,6 @@ import asyncio
 import socket
 from enum import Enum, auto
 from opengsq.protocol_base import ProtocolBase
-from opengsq.protocols.udk import UDK
 
 class SocketKind(Enum):
     SOCK_STREAM = auto()
@@ -123,12 +122,9 @@ class UdpClient(Socket):
         super().__init__(SocketKind.SOCK_DGRAM)
 
 class BroadcastSocket(Socket):
-    def __init__(self, protocol: ProtocolBase):
+    def __init__(self, source_port: int = None):
         super().__init__(SocketKind.SOCK_DGRAM)
-        self.protocol = protocol
-        self.__timeout = None
-        self.__transport = None
-        self.__protocol = None
+        self.source_port = source_port
 
     async def __aenter__(self):
         return self
@@ -143,19 +139,11 @@ class BroadcastSocket(Socket):
         self.close()
 
     async def _connect(self, remote_addr):
-        print(f"DEBUG Socket - Protocol: {self.protocol.__class__.__name__}")
-        print(f"DEBUG Socket - Before bind, port will be: {14001 if isinstance(self.protocol, UDK) else 0}")
-        loop = asyncio.get_running_loop()
-        self.__protocol = self.__Protocol(self.__timeout)
+        print(f"DEBUG Socket - Using port: {self.source_port}")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        print(f"DEBUG Socket - Binding to port: {14001 if isinstance(self.protocol, UDK) else 0}")
-        print(f"DEBUG Socket - Protocol instance check: {isinstance(self.protocol, UDK)}")
-        if isinstance(self.protocol, UDK):
-            sock.bind(('0.0.0.0', 14001))
-        else:
-            sock.bind(('0.0.0.0', 0))
+        sock.bind(('0.0.0.0', self.source_port if self.source_port else 0))
         
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
@@ -163,9 +151,11 @@ class BroadcastSocket(Socket):
         )
 
 class UdpBroadcastClient(BroadcastSocket):
-   @staticmethod
-   async def communicate(protocol: ProtocolBase, data: bytes):
-       with UdpBroadcastClient(protocol) as udpClient:
+    @staticmethod
+    async def communicate(protocol: ProtocolBase, data: bytes):
+        source_port = 14001 if protocol.__class__.__name__ in ['UDK', 'UT3'] else None
+        print(f"DEBUG Client - Setting port: {source_port}")
+        with UdpBroadcastClient(source_port=source_port) as udpClient:
            print(f"DEBUG Broadcast - Protocol type: {type(protocol)}")
            print(f"DEBUG Broadcast - Protocol: {protocol.__class__.__name__}")
            udpClient.settimeout(protocol._timeout)
