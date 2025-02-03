@@ -62,7 +62,7 @@ class Socket():
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(('0.0.0.0', 14001))  # UDK always uses 14001
+        sock.bind(('0.0.0.0', 14001))
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
             sock=sock
@@ -146,7 +146,7 @@ class BroadcastSocket(Socket):
 
 class UdpBroadcastClient(Socket):
     @staticmethod
-    async def communicate(protocol: UDK, data: bytes):
+    async def communicate(protocol: ProtocolBase, data: bytes):
         with UdpBroadcastClient() as client:
             client.settimeout(protocol._timeout)
             await client.create_broadcast_connection((protocol._host, protocol._port))
