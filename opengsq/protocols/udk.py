@@ -25,7 +25,7 @@ class UDK(ProtocolBase):
         packet = self._build_query_packet()
         print(f"Protocol class: {self.__class__.__name__}, Parent: {self.__class__.__bases__[0].__name__}")
         print(f"Using port: {self.UDK_PORT}")
-        data = await UdpBroadcastClient.communicate(self, packet, source_port=self.UDK_PORT)
+        data = await UdpBroadcastClient.communicate(self, packet)
         if not self._is_valid_response(data):
             raise Exception("Invalid response")
         parsed_data = self._parse_response(data)

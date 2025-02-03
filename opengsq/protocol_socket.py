@@ -134,8 +134,8 @@ class BroadcastSocket(Socket):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         
-        # Check for both UDK and derived classes
-        if isinstance(self.protocol_name, str) and (self.protocol_name == 'UDK' or self.protocol_name == 'UT3'):
+        # Always bind to UDK_PORT (14001) for UDK and derived classes
+        if issubclass(type(self.protocol), UDK):
             bind_port = 14001
         else:
             bind_port = self.source_port if self.source_port is not None else 0
