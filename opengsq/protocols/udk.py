@@ -59,57 +59,57 @@ class UDK(ProtocolBase):
         br = BinaryReader(buffer[self.LAN_BEACON_PACKET_HEADER_SIZE:])
         
         # Parse IP and port
-        ip = br.read_uint32()
-        port = br.read_uint32()
+        ip = struct.unpack("!I", br.read_bytes(4))[0]
+        port = struct.unpack("!I", br.read_bytes(4))[0]
         ip_str = f"{(ip >> 24) & 255}.{(ip >> 16) & 255}.{(ip >> 8) & 255}.{ip & 255}"
 
         # Parse connection info
-        num_open_public_conn = br.read_uint32()
-        num_open_private_conn = br.read_uint32()
-        num_public_conn = br.read_uint32()
-        num_private_conn = br.read_uint32()
+        num_open_public_conn = struct.unpack("!I", br.read_bytes(4))[0]
+        num_open_private_conn = struct.unpack("!I", br.read_bytes(4))[0]
+        num_public_conn = struct.unpack("!I", br.read_bytes(4))[0]
+        num_private_conn = struct.unpack("!I", br.read_bytes(4))[0]
 
         # Parse flags
-        should_advertise = br.read_uint8() == 1
-        is_lan_match = br.read_uint8() == 1
-        uses_stats = br.read_uint8() == 1
-        allow_join_in_progress = br.read_uint8() == 1
-        allow_invites = br.read_uint8() == 1
-        uses_presence = br.read_uint8() == 1
-        allow_join_via_presence = br.read_uint8() == 1
-        uses_arbitration = br.read_uint8() == 1
+        should_advertise = br.read_bytes(1)[0] == 1
+        is_lan_match = br.read_bytes(1)[0] == 1
+        uses_stats = br.read_bytes(1)[0] == 1
+        allow_join_in_progress = br.read_bytes(1)[0] == 1
+        allow_invites = br.read_bytes(1)[0] == 1
+        uses_presence = br.read_bytes(1)[0] == 1
+        allow_join_via_presence = br.read_bytes(1)[0] == 1
+        uses_arbitration = br.read_bytes(1)[0] == 1
         
         if self.packet_version >= 5:
-            anti_cheat_protected = br.read_uint8() == 1
+            anti_cheat_protected = br.read_bytes(1)[0] == 1
 
         # Read owner info
-        owner_id = br.read_bytes(8)  # UniqueNetId
+        owner_id = br.read_bytes(8)
         owner_name = self._read_string(br)
 
         # Read properties
-        num_advertised_properties = br.read_uint32()
+        num_advertised_properties = struct.unpack("!I", br.read_bytes(4))[0]
         localized_settings = []
         for _ in range(num_advertised_properties):
             if br.remaining() <= 0:
                 break
-            setting_id = br.read_int32()
-            value_index = br.read_int32()
-            advertisement_type = br.read_uint8()
+            setting_id = struct.unpack("!i", br.read_bytes(4))[0]
+            value_index = struct.unpack("!i", br.read_bytes(4))[0]
+            advertisement_type = br.read_bytes(1)[0]
             localized_settings.append({
                 'id': setting_id,
                 'value_index': value_index,
                 'advertisement_type': advertisement_type
             })
 
-        num_properties = br.read_uint32()
+        num_properties = struct.unpack("!I", br.read_bytes(4))[0]
         settings_properties = []
         for _ in range(num_properties):
             if br.remaining() <= 0:
                 break
-            property_id = br.read_uint32()
-            data_type = br.read_uint8()
+            property_id = struct.unpack("!I", br.read_bytes(4))[0]
+            data_type = br.read_bytes(1)[0]
             data = self._read_settings_data(br, data_type)
-            advertisement_type = br.read_uint8()
+            advertisement_type = br.read_bytes(1)[0]
             settings_properties.append({
                 'id': property_id,
                 'data': data,
@@ -143,7 +143,7 @@ class UDK(ProtocolBase):
         }
 
     def _read_string(self, br: BinaryReader) -> str:
-        length = br.read_int32()
+        length = struct.unpack("!i", br.read_bytes(4))[0]
         if length <= 0:
             return ""
         return br.read_string(length)
@@ -152,16 +152,17 @@ class UDK(ProtocolBase):
         if data_type == 0:  # SDT_Empty
             return None
         elif data_type == 1:  # SDT_Int32
-            return br.read_int32()
+            return struct.unpack("!i", br.read_bytes(4))[0]
         elif data_type == 2:  # SDT_Int64
-            return br.read_int64()
+            return struct.unpack("!q", br.read_bytes(8))[0]
         elif data_type == 3:  # SDT_Double
-            return br.read_double()
+            return struct.unpack("!d", br.read_bytes(8))[0]
         elif data_type == 4:  # SDT_String
             return self._read_string(br)
         elif data_type == 5:  # SDT_Float
-            return br.read_float()
+            return struct.unpack("!f", br.read_bytes(4))[0]
         elif data_type == 6:  # SDT_Blob
             raise NotImplementedError("Blob data type not supported")
         elif data_type == 7:  # SDT_DateTime
-            return (br.read_int32(), br.read_int32())  # (date, time)
+            return (struct.unpack("!i", br.read_bytes(4))[0], 
+                   struct.unpack("!i", br.read_bytes(4))[0])  # (date, time)
