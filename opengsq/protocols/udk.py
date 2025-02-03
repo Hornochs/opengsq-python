@@ -90,7 +90,7 @@ class UDK(ProtocolBase):
         num_advertised_properties = struct.unpack("!I", br.read_bytes(4))[0]
         localized_settings = []
         for _ in range(num_advertised_properties):
-            if br.remaining() <= 0:
+            if br.remaining_bytes() <= 0:
                 break
             setting_id = struct.unpack("!i", br.read_bytes(4))[0]
             value_index = struct.unpack("!i", br.read_bytes(4))[0]
@@ -104,7 +104,7 @@ class UDK(ProtocolBase):
         num_properties = struct.unpack("!I", br.read_bytes(4))[0]
         settings_properties = []
         for _ in range(num_properties):
-            if br.remaining() <= 0:
+            if br.remaining_bytes() <= 0:
                 break
             property_id = struct.unpack("!I", br.read_bytes(4))[0]
             data_type = br.read_bytes(1)[0]
