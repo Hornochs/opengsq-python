@@ -37,6 +37,19 @@ class Socket():
         print(f"DEBUG Socket - connect() called")
         await asyncio.wait_for(self.__connect(remote_addr), timeout=self.__timeout)
 
+    async def _connect(self, remote_addr):
+        print(f"DEBUG 4 - Before socket bind - Using port: {self.bind_port}")
+        print(f"DEBUG Socket - Using port: {self.source_port}")
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.bind(('0.0.0.0', self.source_port if self.source_port else 0))
+        print(f"DEBUG 5 - After socket bind - Actual port: {sock.getsockname()[1]}")
+        self.__transport, _ = await loop.create_datagram_endpoint(
+            lambda: self.__protocol,
+            sock=sock
+        )
+
     async def __connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
@@ -128,19 +141,6 @@ class BroadcastSocket(Socket):
         print(f"DEBUG 3 - BroadcastSocket init - Port passed: {source_port}")
         self.source_port = source_port
         print(f"DEBUG 3.5 - self.source_port: {self.source_port}")
-
-    async def _connect(self, remote_addr):
-        print(f"DEBUG 4 - Before socket bind - Using port: {self.bind_port}")
-        print(f"DEBUG Socket - Using port: {self.source_port}")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(('0.0.0.0', self.source_port if self.source_port else 0))
-        print(f"DEBUG 5 - After socket bind - Actual port: {sock.getsockname()[1]}")
-        self.__transport, _ = await loop.create_datagram_endpoint(
-            lambda: self.__protocol,
-            sock=sock
-        )
 
 class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
