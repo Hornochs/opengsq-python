@@ -34,6 +34,7 @@ class Socket():
         self.__timeout = value
 
     async def connect(self, remote_addr):
+        print(f"DEBUG Socket - connect() called")
         await asyncio.wait_for(self.__connect(remote_addr), timeout=self.__timeout)
 
     async def __connect(self, remote_addr):
