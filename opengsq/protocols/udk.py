@@ -23,7 +23,8 @@ class UDK(ProtocolBase):
 
     async def get_status(self) -> Status:
         packet = self._build_query_packet()
-        # Force UDK port for both sending and receiving
+        print(f"Protocol class: {self.__class__.__name__}, Parent: {self.__class__.__bases__[0].__name__}")
+        print(f"Using port: {self.UDK_PORT}")
         data = await UdpBroadcastClient.communicate(self, packet, source_port=self.UDK_PORT)
         if not self._is_valid_response(data):
             raise Exception("Invalid response")
