@@ -15,6 +15,32 @@ class Socket():
     async def gethostbyname(hostname: str):
         return await asyncio.get_running_loop().run_in_executor(None, socket.gethostbyname, hostname)
 
+    class Protocol(asyncio.Protocol):
+        def __init__(self, timeout: float):
+            self.__packets = asyncio.Queue()
+            self.__timeout = timeout
+
+        async def recv(self):
+            return await asyncio.wait_for(self.__packets.get(), timeout=self.__timeout)
+
+        def connection_made(self, transport):
+            pass
+
+        def connection_lost(self, exc):
+            pass
+
+        def data_received(self, data):
+            self.__packets.put_nowait(data)
+
+        def eof_received(self):
+            pass
+
+        def datagram_received(self, data, addr):
+            self.__packets.put_nowait(data)
+
+        def error_received(self, exc):
+            pass
+
     def __init__(self, kind: SocketKind):
         self.__timeout = None
         self.__transport = None
@@ -126,9 +152,19 @@ class UdpClient(Socket):
             if source_port:
                 udpClient.bind_port(source_port)
             udpClient.settimeout(protocol._timeout)
-            await udpClient.connect((protocol._host, protocol._port))
-            udpClient.send(data)
-            return await udpClient.recv()
+            
+            loop = asyncio.get_running_loop()
+            transport, protocol_instance = await loop.create_datagram_endpoint(
+                lambda: Socket.Protocol(protocol._timeout),  # Use public Protocol class
+                local_addr=('0.0.0.0', source_port if source_port else 0),
+                allow_broadcast=protocol._allow_broadcast
+            )
+            
+            try:
+                transport.sendto(data, (protocol._host, protocol._port))
+                return await protocol_instance.recv()
+            finally:
+                transport.close()
 
     def __init__(self):
         super().__init__(SocketKind.SOCK_DGRAM)
