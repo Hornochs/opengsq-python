@@ -116,6 +116,15 @@ class UDK(ProtocolBase):
                 'advertisement_type': advertisement_type
             })
 
+        # Map settings properties to known fields
+        map_name = ""
+        game_type = ""
+        for prop in settings_properties:
+            if prop['id'] == 2:  # Map name property
+                map_name = prop['data']
+            elif prop['id'] == 1:  # Game type property
+                game_type = prop['data']
+
         raw = {
             'hostaddress': ip_str,
             'hostport': port,
@@ -126,19 +135,21 @@ class UDK(ProtocolBase):
             'owner_id': owner_id.hex(),
             'owner_name': owner_name,
             'localized_settings': localized_settings,
-            'settings_properties': settings_properties
+            'settings_properties': settings_properties,
+            'map': map_name,
+            'game_type': game_type
         }
 
         return {
             'name': owner_name,
-            'map': '',  # Will be set from properties
-            'game_type': '',  # Will be set from properties
+            'map': map_name,
+            'game_type': game_type,
             'num_players': raw['num_players'],
             'max_players': raw['max_players'],
-            'password_protected': False,  # Will be set from properties
+            'password_protected': False,
             'stats_enabled': uses_stats,
             'lan_mode': is_lan_match,
-            'players': [],  # Will be populated from properties
+            'players': [],
             'raw': raw
         }
 
@@ -146,7 +157,7 @@ class UDK(ProtocolBase):
         length = struct.unpack("!i", br.read_bytes(4))[0]
         if length <= 0:
             return ""
-        return br.read_bytes(length).decode('utf-8')
+        return br.read_bytes(length).decode('utf-8', errors='ignore')
 
     def _read_settings_data(self, br: BinaryReader, data_type: int) -> any:
         if data_type == 0:  # SDT_Empty
