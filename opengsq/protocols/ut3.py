@@ -6,4 +6,4 @@ class UT3(UDK):
     
     def __init__(self, host: str, port: int = 14001, timeout: float = 5.0):
         super().__init__(host, port, timeout)
-        self.game_id = 0x4D5707DB  # UT3 specific game ID
+        self.game_id = 0x4D5707DB
