@@ -10,7 +10,9 @@ class UDK(ProtocolBase):
     LAN_BEACON_PACKET_HEADER_SIZE = 16
     
     def __init__(self, host: str, port: int = 14001, timeout: float = 5.0):
-        super().__init__(host, port, timeout)
+        if port != 14001:
+            raise ValueError("UDK protocol requires port 14001")
+        super().__init__(host, 14001, timeout)
         self.packet_version = 1
         self.game_id = 0x00000000
         self.platform = PlatformType.Windows

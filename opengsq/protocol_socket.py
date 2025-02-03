@@ -149,7 +149,7 @@ class BroadcastSocket(Socket):
 class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes):
-        with UdpBroadcastClient(14001) as udpClient:
+        with UdpBroadcastClient(protocol._port) as udpClient:
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
