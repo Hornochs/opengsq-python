@@ -14,7 +14,7 @@ class UDK(ProtocolBase):
         if port != self.UDK_PORT:
             raise ValueError(f"UDK protocol requires port {self.UDK_PORT}")
         super().__init__(host, self.UDK_PORT, timeout)
-        self.packet_version = 1
+        self.packet_version = 5  # Updated from 1 to 5
         self.game_id = 0x00000000
         self.platform = PlatformType.Windows
         self.client_nonce = os.urandom(8)
