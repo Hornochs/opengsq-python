@@ -2,6 +2,7 @@ import asyncio
 import socket
 from enum import Enum, auto
 from opengsq.protocol_base import ProtocolBase
+from opengsq.protocols.udk import UDK
 
 class SocketKind(Enum):
     SOCK_STREAM = auto()
@@ -125,6 +126,7 @@ class BroadcastSocket(Socket):
     def __init__(self, source_port: int = None):
         super().__init__(SocketKind.SOCK_DGRAM)
         self.source_port = source_port
+        self.is_udk = isinstance(protocol, UDK)
 
     async def __connect(self, remote_addr):
         loop = asyncio.get_running_loop()
@@ -133,8 +135,12 @@ class BroadcastSocket(Socket):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         
-        # Bind to specific port if provided
-        bind_port = self.source_port if self.source_port is not None else 0
+        # For UDK, always use port 14001
+        if self.is_udk:
+            bind_port = 14001
+        else:
+            bind_port = self.source_port if self.source_port is not None else 0
+            
         sock.bind(('0.0.0.0', bind_port))
         
         self.__transport, _ = await loop.create_datagram_endpoint(
@@ -145,14 +151,15 @@ class BroadcastSocket(Socket):
 class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes, source_port: int = None):
-        with UdpBroadcastClient(source_port=source_port) as udpClient:
+        with UdpBroadcastClient(source_port=source_port, protocol=protocol) as udpClient:
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
             return await udpClient.recv()
 
-    def __init__(self, source_port: int = None):
+    def __init__(self, source_port: int = None, protocol: ProtocolBase = None):
         super().__init__(source_port)
+        self.protocol = protocol
 
 class TcpClient(Socket):
     @staticmethod
