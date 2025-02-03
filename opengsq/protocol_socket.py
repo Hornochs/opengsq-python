@@ -122,10 +122,11 @@ class UdpClient(Socket):
         super().__init__(SocketKind.SOCK_DGRAM)
 
 class BroadcastSocket(Socket):
-    def __init__(self, source_port: int = None):
+    def __init__(self, source_port: int = None, protocol_name: str = None):
         super().__init__(SocketKind.SOCK_DGRAM)
         self.source_port = source_port
-        
+        self.protocol_name = protocol_name
+
     async def __connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
@@ -133,9 +134,12 @@ class BroadcastSocket(Socket):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         
-        # Check if protocol name matches UDK
-        is_udk = getattr(self, 'protocol', None) and self.protocol.__class__.__name__ == 'UDK'
-        bind_port = 14001 if is_udk else (self.source_port if self.source_port is not None else 0)
+        # Enforce port 14001 for UDK protocol
+        if self.protocol_name == 'UDK':
+            bind_port = 14001
+        else:
+            bind_port = self.source_port if self.source_port is not None else 0
+            
         sock.bind(('0.0.0.0', bind_port))
         
         self.__transport, _ = await loop.create_datagram_endpoint(
@@ -146,15 +150,14 @@ class BroadcastSocket(Socket):
 class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes, source_port: int = None):
-        with UdpBroadcastClient(source_port=source_port, protocol=protocol) as udpClient:
+        with UdpBroadcastClient(source_port=source_port, protocol_name=protocol.__class__.__name__) as udpClient:
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
             return await udpClient.recv()
 
-    def __init__(self, source_port: int = None, protocol: ProtocolBase = None):
-        super().__init__(source_port)
-        self.protocol = protocol
+    def __init__(self, source_port: int = None, protocol_name: str = None):
+        super().__init__(source_port, protocol_name)
 
 class TcpClient(Socket):
     @staticmethod
