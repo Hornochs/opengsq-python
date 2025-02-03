@@ -139,7 +139,7 @@ class BroadcastSocket(Socket):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(('0.0.0.0', self.source_port))
-        
+        print(f"Binding to source port: {self.source_port}")
         # Use create_datagram_endpoint with existing socket
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
