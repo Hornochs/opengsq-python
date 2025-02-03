@@ -22,6 +22,7 @@ class UDK(ProtocolBase):
         self.packet_types_response = (b'S', b'R')
 
     async def get_status(self) -> Status:
+        print(f"DEBUG 1 - UDK get_status() - Class: {self.__class__.__name__}")
         print(f"DEBUG UDK - Sending from class: {self.__class__.__name__}")
         packet = self._build_query_packet()
         print(f"Protocol class: {self.__class__.__name__}, Parent: {self.__class__.__bases__[0].__name__}")

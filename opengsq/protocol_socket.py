@@ -124,14 +124,18 @@ class UdpClient(Socket):
 class BroadcastSocket(Socket):
     def __init__(self, source_port: int = None):
         super().__init__(SocketKind.SOCK_DGRAM)
+        print(f"DEBUG 3 - BroadcastSocket init - Port passed: {source_port}")
         self.source_port = source_port
+        print(f"DEBUG 3.5 - self.source_port: {self.source_port}")
 
     async def _connect(self, remote_addr):
+        print(f"DEBUG 4 - Before socket bind - Using port: {self.bind_port}")
         print(f"DEBUG Socket - Using port: {self.source_port}")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(('0.0.0.0', self.source_port if self.source_port else 0))
+        print(f"DEBUG 5 - After socket bind - Actual port: {sock.getsockname()[1]}")
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
             sock=sock
@@ -141,6 +145,7 @@ class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes):
         source_port = 14001 if protocol.__class__.__name__ in ['UDK', 'UT3'] else None
+        print(f"DEBUG 2 - communicate() - Port before client creation: {source_port}")
         print(f"DEBUG Client - Setting port: {source_port}")
         with UdpBroadcastClient(source_port=source_port) as udpClient:
             udpClient.settimeout(protocol._timeout)
