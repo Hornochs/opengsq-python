@@ -23,7 +23,8 @@ class UDK(ProtocolBase):
 
     async def get_status(self) -> Status:
         packet = self._build_query_packet()
-        data = await UdpBroadcastClient.communicate(self, packet)
+        # Use port 14001 for both sending and receiving
+        data = await UdpBroadcastClient.communicate(self, packet, source_port=14001)
         if not self._is_valid_response(data):
             raise Exception("Invalid response")
         parsed_data = self._parse_response(data)

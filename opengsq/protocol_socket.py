@@ -1,16 +1,11 @@
 import asyncio
 import socket
-import logging
 from enum import Enum, auto
-
 from opengsq.protocol_base import ProtocolBase
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 class SocketKind(Enum):
     SOCK_STREAM = auto()
     SOCK_DGRAM = auto()
-
 
 class Socket():
     @staticmethod
@@ -114,7 +109,6 @@ class Socket():
             """Called when a previous send or receive operation raises an OSError. exc is the OSError instance."""
             pass
 
-
 class UdpClient(Socket):
     @staticmethod
     async def communicate(protocol: ProtocolBase, data: bytes):
@@ -128,22 +122,20 @@ class UdpClient(Socket):
         super().__init__(SocketKind.SOCK_DGRAM)
 
 class BroadcastSocket(Socket):
-    def __init__(self, source_port: int):
+    def __init__(self, source_port: int = None):
         super().__init__(SocketKind.SOCK_DGRAM)
         self.source_port = source_port
 
-    async def _connect(self, remote_addr):
+    async def __connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
-        logger.critical(f"Source port being used: {self.source_port}") 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(('0.0.0.0', self.source_port))
         
-        # Add debug line to check actual bound port
-        bound_port = sock.getsockname()[1]
-        print(f"Socket bound to port: {bound_port}")  # Will show in pytest with -s flag
+        # Bind to specific port if provided
+        bind_port = self.source_port if self.source_port is not None else 0
+        sock.bind(('0.0.0.0', bind_port))
         
         self.__transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
@@ -152,14 +144,14 @@ class BroadcastSocket(Socket):
 
 class UdpBroadcastClient(BroadcastSocket):
     @staticmethod
-    async def communicate(protocol: ProtocolBase, data: bytes):
-        with UdpBroadcastClient(protocol._port) as udpClient:
+    async def communicate(protocol: ProtocolBase, data: bytes, source_port: int = None):
+        with UdpBroadcastClient(source_port=source_port) as udpClient:
             udpClient.settimeout(protocol._timeout)
             await udpClient.connect((protocol._host, protocol._port))
             udpClient.send(data)
             return await udpClient.recv()
 
-    def __init__(self, source_port: int):
+    def __init__(self, source_port: int = None):
         super().__init__(source_port)
 
 class TcpClient(Socket):
