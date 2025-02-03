@@ -2,7 +2,6 @@ import asyncio
 import socket
 from enum import Enum, auto
 from opengsq.protocol_base import ProtocolBase
-#from opengsq.protocols.udk import UDK
 
 class SocketKind(Enum):
     SOCK_STREAM = auto()
@@ -126,8 +125,7 @@ class BroadcastSocket(Socket):
     def __init__(self, source_port: int = None):
         super().__init__(SocketKind.SOCK_DGRAM)
         self.source_port = source_port
-        self.is_udk = isinstance(protocol, UDK)
-
+        
     async def __connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
@@ -135,12 +133,9 @@ class BroadcastSocket(Socket):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         
-        # For UDK, always use port 14001
-        if self.is_udk:
-            bind_port = 14001
-        else:
-            bind_port = self.source_port if self.source_port is not None else 0
-            
+        # Check if protocol name matches UDK
+        is_udk = getattr(self, 'protocol', None) and self.protocol.__class__.__name__ == 'UDK'
+        bind_port = 14001 if is_udk else (self.source_port if self.source_port is not None else 0)
         sock.bind(('0.0.0.0', bind_port))
         
         self.__transport, _ = await loop.create_datagram_endpoint(
