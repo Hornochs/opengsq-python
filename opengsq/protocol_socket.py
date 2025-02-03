@@ -135,6 +135,7 @@ class BroadcastSocket(Socket):
     async def _connect(self, remote_addr):
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
+        logger.critical(f"Source port being used: {self.source_port}") 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
