@@ -127,7 +127,7 @@ class BroadcastSocket(Socket):
         self.source_port = source_port
         self.protocol_name = protocol_name
 
-    async def __connect(self, remote_addr):
+    async def _connect(self, remote_addr):  # Changed from __connect
         loop = asyncio.get_running_loop()
         self.__protocol = self.__Protocol(self.__timeout)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -142,7 +142,7 @@ class BroadcastSocket(Socket):
             
         sock.bind(('0.0.0.0', bind_port))
         
-        self.__transport, _ = await loop.create_datagram_endpoint(
+        self._transport, _ = await loop.create_datagram_endpoint(
             lambda: self.__protocol,
             sock=sock
         )
