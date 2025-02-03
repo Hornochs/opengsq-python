@@ -146,7 +146,7 @@ class UDK(ProtocolBase):
         length = struct.unpack("!i", br.read_bytes(4))[0]
         if length <= 0:
             return ""
-        return br.read_string(length)
+        return br.read_bytes(length).decode('utf-8', errors='ignore')
 
     def _read_settings_data(self, br: BinaryReader, data_type: int) -> any:
         if data_type == 0:  # SDT_Empty
