@@ -1,6 +1,6 @@
 from opengsq.protocol_base import ProtocolBase
 from opengsq.protocol_socket import UdpClient
-from opengsq.responses.udk.status import Status, PlatformType
+from opengsq.responses.udk.status import Status, PlatformType, Player
 from opengsq.binary_reader import BinaryReader
 import struct
 import os
@@ -58,39 +58,110 @@ class UDK(ProtocolBase):
     def _parse_response(self, buffer: bytes) -> dict:
         br = BinaryReader(buffer[self.LAN_BEACON_PACKET_HEADER_SIZE:])
         
-        raw = {}
-        raw['name'] = br.read_string()
-        raw['map'] = br.read_string()
-        raw['game_type'] = br.read_string()
-        raw['num_players'] = br.read_int32()
-        raw['max_players'] = br.read_int32()
-        raw['password_protected'] = br.read_boolean()
-        raw['stats_enabled'] = br.read_boolean()
-        raw['lan_mode'] = br.read_boolean()
+        # Parse IP and port
+        ip = br.read_uint32()
+        port = br.read_uint32()
+        ip_str = f"{(ip >> 24) & 255}.{(ip >> 16) & 255}.{(ip >> 8) & 255}.{ip & 255}"
+
+        # Parse connection info
+        num_open_public_conn = br.read_uint32()
+        num_open_private_conn = br.read_uint32()
+        num_public_conn = br.read_uint32()
+        num_private_conn = br.read_uint32()
+
+        # Parse flags
+        should_advertise = br.read_uint8() == 1
+        is_lan_match = br.read_uint8() == 1
+        uses_stats = br.read_uint8() == 1
+        allow_join_in_progress = br.read_uint8() == 1
+        allow_invites = br.read_uint8() == 1
+        uses_presence = br.read_uint8() == 1
+        allow_join_via_presence = br.read_uint8() == 1
+        uses_arbitration = br.read_uint8() == 1
         
-        players = []
-        while br.remaining() > 0:
-            player_name = br.read_string()
-            if not player_name:
+        if self.packet_version >= 5:
+            anti_cheat_protected = br.read_uint8() == 1
+
+        # Read owner info
+        owner_id = br.read_bytes(8)  # UniqueNetId
+        owner_name = self._read_string(br)
+
+        # Read properties
+        num_advertised_properties = br.read_uint32()
+        localized_settings = []
+        for _ in range(num_advertised_properties):
+            if br.remaining() <= 0:
                 break
-            players.append(Player(
-                name=player_name,
-                score=br.read_int32(),
-                ping=br.read_int32(),
-                team=br.read_int32()
-            ))
-        
-        raw['players'] = players
-        
+            setting_id = br.read_int32()
+            value_index = br.read_int32()
+            advertisement_type = br.read_uint8()
+            localized_settings.append({
+                'id': setting_id,
+                'value_index': value_index,
+                'advertisement_type': advertisement_type
+            })
+
+        num_properties = br.read_uint32()
+        settings_properties = []
+        for _ in range(num_properties):
+            if br.remaining() <= 0:
+                break
+            property_id = br.read_uint32()
+            data_type = br.read_uint8()
+            data = self._read_settings_data(br, data_type)
+            advertisement_type = br.read_uint8()
+            settings_properties.append({
+                'id': property_id,
+                'data': data,
+                'advertisement_type': advertisement_type
+            })
+
+        raw = {
+            'hostaddress': ip_str,
+            'hostport': port,
+            'num_players': num_public_conn - num_open_public_conn,
+            'max_players': num_public_conn,
+            'lan_mode': is_lan_match,
+            'uses_stats': uses_stats,
+            'owner_id': owner_id.hex(),
+            'owner_name': owner_name,
+            'localized_settings': localized_settings,
+            'settings_properties': settings_properties
+        }
+
         return {
-            'name': raw['name'],
-            'map': raw['map'],
-            'game_type': raw['game_type'],
+            'name': owner_name,
+            'map': '',  # Will be set from properties
+            'game_type': '',  # Will be set from properties
             'num_players': raw['num_players'],
             'max_players': raw['max_players'],
-            'password_protected': raw['password_protected'],
-            'stats_enabled': raw['stats_enabled'],
-            'lan_mode': raw['lan_mode'],
-            'players': players,
+            'password_protected': False,  # Will be set from properties
+            'stats_enabled': uses_stats,
+            'lan_mode': is_lan_match,
+            'players': [],  # Will be populated from properties
             'raw': raw
         }
+
+    def _read_string(self, br: BinaryReader) -> str:
+        length = br.read_int32()
+        if length <= 0:
+            return ""
+        return br.read_string(length)
+
+    def _read_settings_data(self, br: BinaryReader, data_type: int) -> any:
+        if data_type == 0:  # SDT_Empty
+            return None
+        elif data_type == 1:  # SDT_Int32
+            return br.read_int32()
+        elif data_type == 2:  # SDT_Int64
+            return br.read_int64()
+        elif data_type == 3:  # SDT_Double
+            return br.read_double()
+        elif data_type == 4:  # SDT_String
+            return self._read_string(br)
+        elif data_type == 5:  # SDT_Float
+            return br.read_float()
+        elif data_type == 6:  # SDT_Blob
+            raise NotImplementedError("Blob data type not supported")
+        elif data_type == 7:  # SDT_DateTime
+            return (br.read_int32(), br.read_int32())  # (date, time)
