@@ -35,6 +35,24 @@ class UT3(UDK):
         0x10000: "Arena"
     }
 
+    BOT_SKILL_NAMES = {
+    0: "Novice",
+    1: "Average", 
+    2: "Experienced",
+    3: "Skilled",
+    4: "Adept",
+    5: "Masterful",
+    6: "Inhuman",
+    7: "Godlike"
+    }
+
+    VS_BOTS_NAMES = {
+    0: "None",
+    1: "1:1",
+    2: "3:2", 
+    3: "2:1"
+    }
+
     full_name = "Unreal Tournament 3 Protocol"
     
     def __init__(self, host: str, port: int = 14001, timeout: float = 5.0):
@@ -73,14 +91,14 @@ class UT3(UDK):
             if setting_id == 32779:  # Game Mode
                 ut3_properties['gamemode'] = self.GAMEMODE_NAMES.get(value_index, f"Unknown_{value_index}")
             elif setting_id == 0:
-                ut3_properties['bot_skill'] = value_index
+                ut3_properties['bot_skill'] = self.BOT_SKILL_NAMES.get(value_index)
             elif setting_id == 6:
                 ut3_properties['pure_server'] = value_index
             elif setting_id == 7:
                 base_response['password_protected'] = value_index == 1
                 ut3_properties['password'] = value_index
             elif setting_id == 8:
-                ut3_properties['vs_bots'] = value_index
+                ut3_properties['vs_bots'] = self.VS_BOTS_NAMES.get(value_index)
             elif setting_id == 10:
                 ut3_properties['force_respawn'] = value_index
 
