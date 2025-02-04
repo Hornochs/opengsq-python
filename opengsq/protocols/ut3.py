@@ -87,7 +87,9 @@ class UT3(UDK):
         base_response['raw'].update(ut3_properties)
         return base_response
 
-    def _parse_mutators(self, mutator_value: int) -> list:
-        if not isinstance(mutator_value, int):
+    def _parse_mutators(self, mutator_value: any) -> list:
+        try:
+            int_value = int(mutator_value)
+            return [name for flag, name in self.MUTATOR_NAMES.items() if int_value & flag]
+        except (ValueError, TypeError):
             return []
-        return [name for flag, name in self.MUTATOR_NAMES.items() if mutator_value & flag]
