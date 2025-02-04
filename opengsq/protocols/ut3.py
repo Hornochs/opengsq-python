@@ -62,8 +62,8 @@ class UT3(UDK):
                 ut3_properties['time_limit'] = prop['data']
             elif prop_id == 268435703:      # Number of Bots
                 ut3_properties['numbots'] = prop['data']
-            elif prop_id == 268435717 or prop_id == 1073741829:  # Stock Mutators
-                ut3_properties['stock_mutators'] = self._parse_mutators(prop['data'])
+            elif prop_id == 268435717:  # Stock Mutators
+                ut3_properties['stock_mutators'] = self._parse_mutators(32)
 
         # Process localized settings
         for setting in base_response['raw']['localized_settings']:
@@ -88,8 +88,12 @@ class UT3(UDK):
         return base_response
 
     def _parse_mutators(self, mutator_value: any) -> list:
+        print(f"Parsing mutator value: {mutator_value}, type: {type(mutator_value)}")
         try:
             int_value = int(mutator_value)
-            return [name for flag, name in self.MUTATOR_NAMES.items() if int_value & flag]
+            mutators = [name for flag, name in self.MUTATOR_NAMES.items() if int_value & flag]
+            print(f"Parsed mutators: {mutators}")
+            return mutators
         except (ValueError, TypeError):
+            print("Failed to parse mutator value")
             return []
