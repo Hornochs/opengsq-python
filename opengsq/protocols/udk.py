@@ -129,18 +129,27 @@ class UDK(ProtocolBase):
             'settings_properties': settings_properties
         }
 
-        return {
+        result = {
             'name': owner_name,
-            'map': '',  # Will be set from properties
-            'game_type': '',  # Will be set from properties
+            'map': '',
+            'game_type': '',
             'num_players': raw['num_players'],
             'max_players': raw['max_players'],
-            'password_protected': False,  # Will be set from properties
+            'password_protected': False,
             'stats_enabled': uses_stats,
             'lan_mode': is_lan_match,
-            'players': [],  # Will be populated from properties
+            'players': [],
             'raw': raw
         }
+
+        # Map properties by ID
+        for prop in settings_properties:
+            if prop['id'] == 1073741825:  # Map
+                result['map'] = prop['data']
+            elif prop['id'] == 1073741826:  # Game Type
+                result['game_type'] = prop['data']
+
+        return result
 
     def _read_string(self, br: BinaryReader) -> str:
         length = struct.unpack("!i", br.read_bytes(4))[0]
