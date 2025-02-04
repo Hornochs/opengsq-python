@@ -48,7 +48,7 @@ class UT3(UDK):
         base_response['raw'].update(ut3_properties)
         return base_response
 
-    def _split_mutators(self, mutators_str: str) -> list:
-        if not mutators_str:
+    def _split_mutators(self, mutators_str) -> list:
+        if not mutators_str or isinstance(mutators_str, int):
             return []
         return [m for m in mutators_str.split('\x1c') if m]
