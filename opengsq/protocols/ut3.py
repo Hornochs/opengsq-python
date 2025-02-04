@@ -54,16 +54,16 @@ class UT3(UDK):
             elif prop_id == 1073741826:     # Game Type
                 base_response['game_type'] = prop['data']
                 ut3_properties['gametype'] = prop['data']
-            elif prop_id == 1073741828:     # Custom Mutators
-                ut3_properties['custom_mutators'] = self._parse_mutators(prop['data'])
             elif prop_id == 268435704:      # Frag Limit
                 ut3_properties['frag_limit'] = prop['data']
             elif prop_id == 268435705:      # Time Limit
                 ut3_properties['time_limit'] = prop['data']
             elif prop_id == 268435703:      # Number of Bots
                 ut3_properties['numbots'] = prop['data']
-            elif prop_id == 268435717:  # Stock Mutators
-                ut3_properties['stock_mutators'] = self._parse_mutators(32)
+            if prop_id == 268435717:  # Stock Mutators
+                ut3_properties['stock_mutators'] = self._parse_mutators(prop['data'])
+            elif prop_id == 1073741828:  # Custom Mutators
+                ut3_properties['custom_mutators'] = self._parse_mutators(prop['data'])
 
         # Process localized settings
         for setting in base_response['raw']['localized_settings']:
@@ -88,12 +88,10 @@ class UT3(UDK):
         return base_response
 
     def _parse_mutators(self, mutator_value: any) -> list:
-        print(f"Parsing mutator value: {mutator_value}, type: {type(mutator_value)}")
+        if not mutator_value:
+            return []
         try:
             int_value = int(mutator_value)
-            mutators = [name for flag, name in self.MUTATOR_NAMES.items() if int_value & flag]
-            print(f"Parsed mutators: {mutators}")
-            return mutators
+            return [name for flag, name in self.MUTATOR_NAMES.items() if int_value & flag]
         except (ValueError, TypeError):
-            print("Failed to parse mutator value")
             return []
