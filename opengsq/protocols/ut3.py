@@ -14,6 +14,27 @@ class UT3(UDK):
         8: "Betrayal",
         9: "Custom"
     }
+
+    MUTATOR_NAMES = {
+        0x1: "SlowTimeKills",
+        0x2: "BigHead",
+        0x4: "NoOrbs",
+        0x8: "FriendlyFire", 
+        0x10: "Handicap",
+        0x20: "Instagib",
+        0x40: "LowGrav",
+        0x80: "NoPowerups",
+        0x100: "NoTranslocator",
+        0x200: "Slomo",
+        0x400: "SpeedFreak",
+        0x800: "SuperBerserk",
+        0x1000: "WeaponReplacement",
+        0x2000: "WeaponsRespawn",
+        0x4000: "Survival",
+        0x8000: "Hero",
+        0x10000: "Arena"
+    }
+
     full_name = "Unreal Tournament 3 Protocol"
     
     def __init__(self, host: str, port: int = 14001, timeout: float = 5.0):
@@ -42,7 +63,7 @@ class UT3(UDK):
             elif prop_id == 268435703:      # Number of Bots
                 ut3_properties['numbots'] = prop['data']
             elif prop_id == 268435717 or prop_id == 1073741829:  # Stock Mutators
-                ut3_properties['stock_mutators'] = self._split_mutators(prop['data'])
+                ut3_properties['stock_mutators'] = self._parse_mutators(prop['data'])
 
         # Process localized settings
         for setting in base_response['raw']['localized_settings']:
@@ -66,7 +87,7 @@ class UT3(UDK):
         base_response['raw'].update(ut3_properties)
         return base_response
 
-    def _split_mutators(self, mutators_str) -> list:
-        if not mutators_str or isinstance(mutators_str, int):
+    def _parse_mutators(self, mutator_value: int) -> list:
+        if not isinstance(mutator_value, int):
             return []
-        return [m for m in mutators_str.split('\x1c') if m]
+        return [name for flag, name in self.MUTATOR_NAMES.items() if mutator_value & flag]
