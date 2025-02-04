@@ -55,7 +55,7 @@ class UT3(UDK):
                 base_response['game_type'] = prop['data']
                 ut3_properties['gametype'] = prop['data']
             elif prop_id == 1073741828:     # Custom Mutators
-                ut3_properties['custom_mutators'] = self._split_mutators(prop['data'])
+                ut3_properties['custom_mutators'] = self._parse_mutators(prop['data'])
             elif prop_id == 268435704:      # Frag Limit
                 ut3_properties['frag_limit'] = prop['data']
             elif prop_id == 268435705:      # Time Limit
